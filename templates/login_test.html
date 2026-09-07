@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구조 안전 진단 시스템 - API 테스트</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.4);
+            --bg: #0f111a;
+            --card-bg: rgba(30, 34, 55, 0.6);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 5px;
+            border-radius: 14px;
+            margin-bottom: 30px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        /* Forms */
+        .form-content {
+            display: none;
+        }
+
+        .form-content.active {
+            display: block;
+            animation: slideUp 0.4s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .input-wrap {
+            margin-bottom: 20px;
+        }
+
+        .input-wrap label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            margin-left: 4px;
+        }
+
+        .input-wrap input,
+        .input-wrap select {
+            width: 100%;
+            padding: 14px 20px;
+            background: rgba(15, 17, 26, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrap input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .btn-main {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            border: none;
+            border-radius: 14px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px var(--primary-glow);
+        }
+
+        /* Result Panel */
+        #result-panel {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            display: none;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .status-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .json-viewer {
+            font-family: 'Consolas', monospace;
+            font-size: 12px;
+            color: #cdcdcd;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.6;
+        }
+
+        .server-indicator {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .dot-glow {
+            box-shadow: 0 0 8px currentColor;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #token-area {
+            margin-top: 15px;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="glass-card">
+            <div class="header">
+                <h1>SAFE GUARD AI</h1>
+                <p>구조 안전 진단 시스템 백엔드 테스트</p>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('login')">로그인</button>
+                <button class="tab-btn" onclick="switchTab('register')">회원가입</button>
+            </div>
+
+            <!-- Login Form -->
+            <div id="login-form" class="form-content active">
+                <div class="input-wrap">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" id="login-email" placeholder="name@example.com">
+                </div>
+                <div class="input-wrap">
+                    <label>PASSWORD</label>
+                    <input type="password" id="login-password" placeholder="••••••••">
+                </div>
+                <button class="btn-main" onclick="handleLogin()">ACCESS SYSTEM</button>
+            </div>
+
+            <!-- Register Form -->
+            <div id="register-form" class="form-content">
+                <div class="input-wrap">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" id="reg-email" placeholder="name@example.com">
+                </div>
+                <div class="input-wrap">
+                    <label>PASSWORD</label>
+                    <input type="password" id="reg-password" placeholder="••••••••">
+                </div>
+                <div class="input-wrap">
+                    <label>FULL NAME</label>
+                    <input type="text" id="reg-name" placeholder="홍길동">
+                </div>
+                <div class="input-wrap">
+                    <label>SYSTEM ROLE</label>
+                    <select id="reg-role">
+                        <option value="viewer">VIEWER (일반조회)</option>
+                        <option value="inspector">INSPECTOR (현장점검)</option>
+                        <option value="admin">ADMIN (시스템관리)</option>
+                    </select>
+                </div>
+                <button class="btn-main" onclick="handleRegister()">CREATE ACCOUNT</button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-panel">
+                <div id="status-badge" class="status-badge">READY</div>
+                <div class="json-viewer" id="json-result"></div>
+                <div id="token-area"></div>
+            </div>
+
+            <div class="footer">
+                <div class="server-indicator">
+                    <div id="server-dot" class="dot" style="background: grey;"></div>
+                    <span id="server-status-text">CONNECTING...</span>
+                </div>
+                <div style="font-size: 10px; color: var(--text-dim);">IP: 10.184.176.247:5001</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://10.184.176.247:5001/api/auth';
+        let currentToken = null;
+
+        function switchTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.form-content').forEach(f => f.classList.remove('active'));
+
+            if (type === 'login') {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('login-form').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('register-form').classList.add('active');
+            }
+            document.getElementById('result-panel').style.display = 'none';
+        }
+
+        async function handleRegister() {
+            const payload = {
+                email: document.getElementById('reg-email').value,
+                password: document.getElementById('reg-password').value,
+                name: document.getElementById('reg-name').value,
+                role: document.getElementById('reg-role').value
+            };
+
+            updateStatus('SENDING...', 'neutral');
+
+            try {
+                const res = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                showFinalResult(res.ok, data);
+            } catch (e) {
+                showFinalResult(false, { error: '서버 연결 실패. IP와 실행여부를 확인하세요.' });
+            }
+        }
+
+        async function handleLogin() {
+            const payload = {
+                email: document.getElementById('login-email').value,
+                password: document.getElementById('login-password').value
+            };
+
+            updateStatus('AUTHENTICATING...', 'neutral');
+
+            try {
+                const res = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    currentToken = data.token;
+                    document.getElementById('token-area').style.display = 'block';
+                    document.getElementById('token-area').innerHTML = `<strong>JWT TOKEN:</strong><br>${data.token.substring(0, 40)}...`;
+                }
+
+                showFinalResult(res.ok, data);
+            } catch (e) {
+                showFinalResult(false, { error: '로그인 서버 연결 실패' });
+            }
+        }
+
+        function updateStatus(text, type) {
+            const panel = document.getElementById('result-panel');
+            const badge = document.getElementById('status-badge');
+            panel.style.display = 'block';
+            badge.textContent = text;
+            badge.className = 'status-badge ' + (type === 'success' ? 'status-success' : type === 'error' ? 'status-error' : '');
+        }
+
+        function showFinalResult(isSuccess, data) {
+            updateStatus(isSuccess ? 'SUCCESS' : 'FAILED', isSuccess ? 'success' : 'error');
+            document.getElementById('json-result').textContent = JSON.stringify(data, null, 2);
+        }
+
+        async function checkServer() {
+            const dot = document.getElementById('server-dot');
+            const text = document.getElementById('server-status-text');
+            try {
+                const res = await fetch('http://10.184.176.247:5001/', { method: 'GET' });
+                if (res.ok) {
+                    dot.style.background = '#10b981';
+                    dot.classList.add('dot-glow');
+                    text.textContent = 'ONLINE (10.184.176.247:5001)';
+                    text.style.color = '#10b981';
+                }
+            } catch (e) {
+                dot.style.background = '#ef4444';
+                dot.classList.remove('dot-glow');
+                text.textContent = 'SERVER OFFLINE';
+                text.style.color = '#ef4444';
+            }
+        }
+
+        // 초기 서버 체크 및 주기적 갱신
+        checkServer();
+        setInterval(checkServer, 10000);
+    </script>
+</body>
+
+</html>
