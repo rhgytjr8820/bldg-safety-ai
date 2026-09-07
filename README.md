@@ -58,19 +58,33 @@
 2. **TCP 소켓 서버** (포트 `5001`, 백그라운드 스레드) — Jetson 기기의 상태(heartbeat/telemetry) 수신
 3. **MediaMTX 컨테이너** (Docker) — 기기의 실시간 카메라 영상을 앱으로 중계
 
+```mermaid
+flowchart LR
+    App["Flutter App"]
+    Jetson["Jetson 기기"]
+    Cam["Jetson 카메라"]
+
+    subgraph Server["Main Server Process"]
+        API["Flask REST API<br/>:1310"]
+        Auth["AuthService<br/>JWT · 토큰 블랙리스트"]
+        TCP["TCP Socket Server<br/>:5001 · thread"]
+        Media["MediaMTX (Docker)<br/>영상 중계"]
+    end
+
+    DB[("MySQL")]
+    Redis[("Redis")]
+
+    App --> API
+    Jetson --> TCP
+    Cam --> Media
+
+    API --> DB
+    API --- Auth
+    Auth --> Redis
+    TCP --> DB
+    Media --> App
 ```
-                    ┌─────────────────────────────────────────┐
-                    │            Main Server Process           │
-                    │                                          │
-   Flutter App ────▶│  Flask REST API (:1310) ── SQLAlchemy ───┼──▶ MySQL
-                    │        │                                 │
-                    │        └── AuthService ──────────────────┼──▶ Redis
-                    │                                          │
-   Jetson 기기 ────▶│  TCP Socket Server (:5001, thread) ──────┼──▶ MySQL
-                    │                                          │
-   Jetson 카메라 ──▶│  MediaMTX (Docker) ──────────────────────┼──▶ Flutter App
-                    └─────────────────────────────────────────┘
-```
+
 
 ---
 
