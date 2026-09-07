@@ -1,0 +1,10 @@
+flask
+flask-cors
+python-dotenv
+flask-bcrypt
+PyJWT
+flask-sqlalchemy
+pymysql
+cryptography
+redis
+flask-restx
